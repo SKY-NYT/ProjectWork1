@@ -307,7 +307,7 @@ const AdminQRGenerator = ({ frontUrl, showNotifications, onNotification }) => {
                     >
                       <QRCode
                         id="admin-qr-code"
-                        value={`${frontUrl}/login?session=${currentQRData.id}`}
+                        value={`${frontUrl}/signin?session=${currentQRData.id}`}
                         size={200}
                         level="M"
                         includeMargin={true}
