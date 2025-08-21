@@ -41,7 +41,8 @@ app.use(express.json());
 app.use(cookieParser()); // Add cookie parser middleware
 
 const allowedOrigins = [
-  process.env.FRONTEND_URL,
+  process.env.REACT_APP_FRONTEND_URL,
+  'https://project-work1-front.vercel.app',
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   'http://localhost:3000'
@@ -52,24 +53,14 @@ const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    
     console.log(`🌐 CORS request from origin: ${origin}`);
-    
-    // Allow all origins for development - remove in production
-    console.log(`✅ CORS allowed for origin: ${origin} (allowing all origins)`);
-    callback(null, true);
-    
-    // Original restricted logic (commented out for development)
-    /*
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    if (allowedOrigins.includes(origin)) {
       console.log(`✅ CORS allowed for origin: ${origin}`);
       callback(null, true);
     } else {
       console.log(`❌ CORS blocked for origin: ${origin}`);
-      console.log(`Allowed origins: ${allowedOrigins.join(', ')}`);
       callback(new Error('Not allowed by CORS'));
     }
-    */
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD', 'PATCH'],
   allowedHeaders: [

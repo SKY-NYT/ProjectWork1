@@ -1,3 +1,7 @@
+// Attendance login and check endpoint
+const User = require('../models/User');
+const AttendanceSession = require('../models/AttendanceSession');
+
 const express = require('express');
 const AttendanceTracker = require('../services/attendanceTracker');
 const Participant = require('../models/Participant');
@@ -13,6 +17,27 @@ const router = express.Router();
 const attendanceTracker = new AttendanceTracker();
 attendanceTracker.init();
 const meetingDiagnostics = new MeetingDiagnostics();
+
+// GET /api/attendance/logs?dateFrom=YYYY-MM-DD&dateTo=YYYY-MM-DD
+const Attendance = require('../models/Attendance');
+router.get('/logs', async (req, res) => {
+  const { dateFrom, dateTo } = req.query;
+  try {
+    // Build date range filter
+    const filter = {};
+    if (dateFrom && dateTo) {
+      filter.date = {
+        $gte: new Date(dateFrom),
+        $lte: new Date(dateTo + 'T23:59:59.999Z'),
+      };
+    }
+    // Fetch attendance logs
+    const logs = await Attendance.find(filter).lean();
+    res.json({ success: true, logs });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to fetch attendance logs.' });
+  }
+});
 
 /**
  * Start tracking attendance for a specific meeting
@@ -67,6 +92,42 @@ router.post('/start-tracking/:meetingId', async (req, res) => {
       meetingId: req.params.meetingId,
       timestamp: new Date().toISOString()
     });
+  }
+});
+
+
+/**
+ * Attendance login and mark endpoint
+ * POST /api/attendance/check?session=SESSION_ID
+ */
+router.post('/check', async (req, res) => {
+  const { email, password } = req.body;
+  const sessionId = req.query.session;
+  if (!email || !password || !sessionId) {
+    return res.status(400).json({ message: 'Email, password, and session ID are required.' });
+  }
+  try {
+    // Find user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ message: 'User not found.' });
+    }
+    // Check password using bcrypt
+    const validPassword = await require('bcryptjs').compare(password, user.password);
+    if (!validPassword) {
+      return res.status(401).json({ message: 'Invalid password.' });
+    }
+    // Find attendance session
+    const session = await AttendanceSession.findById(sessionId);
+    if (!session) {
+      return res.status(404).json({ message: 'Attendance session not found.' });
+    }
+    // Mark attendance (customize as needed)
+    session.userId = user._id;
+    await session.save();
+    res.json({ success: true, username: user.username || user.email });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error.' });
   }
 });
 
