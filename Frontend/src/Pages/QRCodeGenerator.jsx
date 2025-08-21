@@ -16,7 +16,7 @@ import AdminQRGenerator from '../Components/QRCode/AdminQRGenerator';
 
 const QRCodeGenerator = () => {
   // Backend URL
-  const backendUrl = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5000';
+  const frontendUrl = import.meta.env.REACT_APP_FRONTEND_URL || 'https://project-work1-brown.vercel.app';
   
   const showNotificationMessage = (message, severity = 'info') => {
     // You can integrate with your notification system here
@@ -96,7 +96,7 @@ const QRCodeGenerator = () => {
         }}
       >
         <AdminQRGenerator
-          backendUrl={backendUrl}
+          frontendUrl={frontendUrl}
           showNotifications={true}
           onNotification={showNotificationMessage}
         />

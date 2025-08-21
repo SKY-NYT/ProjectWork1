@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
   Card,
@@ -21,8 +21,8 @@ import {
   ListItem,
   ListItemText,
   ListItemIcon,
-  Divider
-} from '@mui/material';
+  Divider,
+} from "@mui/material";
 import {
   QrCode,
   Refresh,
@@ -37,16 +37,17 @@ import {
   CheckCircle,
   Warning,
   Person,
-  Badge
-} from '@mui/icons-material';
-import QRCode from 'react-qr-code';
-import { format, addMinutes, differenceInSeconds } from 'date-fns';
-import { useAuth } from '../../context/AuthContext';
+  Badge,
+} from "@mui/icons-material";
+import QRCode from "react-qr-code";
+import { format, addMinutes, differenceInSeconds } from "date-fns";
+import { useAuth } from "../../context/AuthContext";
 
-const AdminQRGenerator = ({ backendUrl, showNotifications, onNotification }) => {
+const AdminQRGenerator = ({ frontUrl, showNotifications, onNotification }) => {
   // Get auth context for user identity
-  const { getUserIdentity, isAuthenticated, user, student, displayName } = useAuth();
-  
+  const { getUserIdentity, isAuthenticated, user, student, displayName } =
+    useAuth();
+
   // QR Code state
   const [currentQRData, setCurrentQRData] = useState(null);
   const [nextQRData, setNextQRData] = useState(null);
@@ -54,96 +55,107 @@ const AdminQRGenerator = ({ backendUrl, showNotifications, onNotification }) => 
   const [isActive, setIsActive] = useState(false);
   const [qrHistory, setQrHistory] = useState([]);
   const [loading, setLoading] = useState(false);
-  
+
   // Dialog states
   const [historyDialog, setHistoryDialog] = useState(false);
   const [infoDialog, setInfoDialog] = useState(false);
-  
+
   // Settings
   const [autoRotate, setAutoRotate] = useState(true);
   const [showTimer, setShowTimer] = useState(true);
-  
+
   // Generate QR code data with user identity
-  const generateQRData = useCallback((timestamp = Date.now()) => {
-    const qrId = `attendance_${timestamp}`;
-    const expiresAt = addMinutes(new Date(timestamp), 5);
-    const userIdentity = getUserIdentity();
-    
-    const qrData = {
-      id: qrId,
-      type: 'attendance_check',
-      timestamp: timestamp,
-      expiresAt: expiresAt.toISOString(),
-      checksum: btoa(`${qrId}_${timestamp}`), // Simple checksum for validation
-      location: 'admin_dashboard',
-      // Automatically include user identity for logged-in users
-      user: userIdentity ? {
-        userId: userIdentity.userId,
-        username: userIdentity.username,
-        email: userIdentity.email,
-        role: userIdentity.role,
-        studentId: userIdentity.studentId,
-        firstName: userIdentity.firstName,
-        lastName: userIdentity.lastName,
-        fullName: userIdentity.fullName,
-        department: userIdentity.department,
-        hasStudentRecord: userIdentity.hasStudentRecord
-      } : null,
-      // For backward compatibility
-      adminId: userIdentity?.userId || 'admin'
-    };
-    
-    return qrData;
-  }, [getUserIdentity]);
+  const generateQRData = useCallback(
+    (timestamp = Date.now()) => {
+      const qrId = `attendance_${timestamp}`;
+      const expiresAt = addMinutes(new Date(timestamp), 5);
+      const userIdentity = getUserIdentity();
+
+      const qrData = {
+        id: qrId,
+        type: "attendance_check",
+        timestamp: timestamp,
+        expiresAt: expiresAt.toISOString(),
+        checksum: btoa(`${qrId}_${timestamp}`), // Simple checksum for validation
+        location: "admin_dashboard",
+        // Automatically include user identity for logged-in users
+        user: userIdentity
+          ? {
+              userId: userIdentity.userId,
+              username: userIdentity.username,
+              email: userIdentity.email,
+              role: userIdentity.role,
+              studentId: userIdentity.studentId,
+              firstName: userIdentity.firstName,
+              lastName: userIdentity.lastName,
+              fullName: userIdentity.fullName,
+              department: userIdentity.department,
+              hasStudentRecord: userIdentity.hasStudentRecord,
+            }
+          : null,
+        // For backward compatibility
+        adminId: userIdentity?.userId || "admin",
+      };
+
+      return qrData;
+    },
+    [getUserIdentity]
+  );
 
   // Initialize QR code
   const initializeQR = useCallback(() => {
     const now = Date.now();
     const currentData = generateQRData(now);
-    const nextData = generateQRData(now + (5 * 60 * 1000)); // Next QR in 5 minutes
-    
+    const nextData = generateQRData(now + 5 * 60 * 1000); // Next QR in 5 minutes
+
     setCurrentQRData(currentData);
     setNextQRData(nextData);
     setTimeRemaining(300);
-    
+
     // Add to history
-    setQrHistory(prev => [{
-      ...currentData,
-      generatedAt: new Date(),
-      status: 'active'
-    }, ...prev.slice(0, 9)]); // Keep last 10 entries
-    
+    setQrHistory((prev) => [
+      {
+        ...currentData,
+        generatedAt: new Date(),
+        status: "active",
+      },
+      ...prev.slice(0, 9),
+    ]); // Keep last 10 entries
+
     if (onNotification) {
-      onNotification('QR Code generated successfully', 'success');
+      onNotification("QR Code generated successfully", "success");
     }
   }, [generateQRData, onNotification]);
 
   // Rotate QR code
   const rotateQR = useCallback(() => {
     if (!isActive) return;
-    
+
     // Move next QR to current and generate new next QR
     const newCurrentData = nextQRData;
-    const newNextData = generateQRData(Date.now() + (5 * 60 * 1000));
-    
+    const newNextData = generateQRData(Date.now() + 5 * 60 * 1000);
+
     setCurrentQRData(newCurrentData);
     setNextQRData(newNextData);
     setTimeRemaining(300);
-    
+
     // Update history - mark previous as expired and add new
-    setQrHistory(prev => {
-      const updated = prev.map(item => 
-        item.status === 'active' ? { ...item, status: 'expired' } : item
+    setQrHistory((prev) => {
+      const updated = prev.map((item) =>
+        item.status === "active" ? { ...item, status: "expired" } : item
       );
-      return [{
-        ...newCurrentData,
-        generatedAt: new Date(),
-        status: 'active'
-      }, ...updated.slice(0, 9)];
+      return [
+        {
+          ...newCurrentData,
+          generatedAt: new Date(),
+          status: "active",
+        },
+        ...updated.slice(0, 9),
+      ];
     });
-    
+
     if (onNotification) {
-      onNotification('QR Code rotated - new code generated', 'info');
+      onNotification("QR Code rotated - new code generated", "info");
     }
   }, [nextQRData, generateQRData, isActive, onNotification]);
 
@@ -152,7 +164,7 @@ const AdminQRGenerator = ({ backendUrl, showNotifications, onNotification }) => 
     if (!isActive || !autoRotate) return;
 
     const timer = setInterval(() => {
-      setTimeRemaining(prev => {
+      setTimeRemaining((prev) => {
         if (prev <= 1) {
           rotateQR();
           return 300;
@@ -180,16 +192,16 @@ const AdminQRGenerator = ({ backendUrl, showNotifications, onNotification }) => 
     setCurrentQRData(null);
     setNextQRData(null);
     setTimeRemaining(300);
-    
+
     // Mark all active QRs as stopped
-    setQrHistory(prev => 
-      prev.map(item => 
-        item.status === 'active' ? { ...item, status: 'stopped' } : item
+    setQrHistory((prev) =>
+      prev.map((item) =>
+        item.status === "active" ? { ...item, status: "stopped" } : item
       )
     );
-    
+
     if (onNotification) {
-      onNotification('QR Code generation stopped', 'warning');
+      onNotification("QR Code generation stopped", "warning");
     }
   };
 
@@ -206,40 +218,40 @@ const AdminQRGenerator = ({ backendUrl, showNotifications, onNotification }) => 
   // Download QR code
   const downloadQR = () => {
     if (!currentQRData) return;
-    
-    const svg = document.getElementById('admin-qr-code');
+
+    const svg = document.getElementById("admin-qr-code");
     const svgData = new XMLSerializer().serializeToString(svg);
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
     const img = new Image();
-    
+
     img.onload = () => {
       canvas.width = img.width;
       canvas.height = img.height;
       ctx.drawImage(img, 0, 0);
-      
-      const pngFile = canvas.toDataURL('image/png');
-      const downloadLink = document.createElement('a');
-      downloadLink.download = `attendance_qr_${format(new Date(), 'yyyyMMdd_HHmmss')}.png`;
+
+      const pngFile = canvas.toDataURL("image/png");
+      const downloadLink = document.createElement("a");
+      downloadLink.download = `attendance_qr_${format(new Date(), "yyyyMMdd_HHmmss")}.png`;
       downloadLink.href = pngFile;
       downloadLink.click();
     };
-    
-    img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
+
+    img.src = "data:image/svg+xml;base64," + btoa(svgData);
   };
 
   // Format time remaining
   const formatTimeRemaining = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   // Get QR status color
   const getStatusColor = (timeLeft) => {
-    if (timeLeft > 120) return 'success'; // Green
-    if (timeLeft > 60) return 'warning';  // Orange
-    return 'error'; // Red
+    if (timeLeft > 120) return "success"; // Green
+    if (timeLeft > 60) return "warning"; // Orange
+    return "error"; // Red
   };
 
   return (
@@ -247,12 +259,22 @@ const AdminQRGenerator = ({ backendUrl, showNotifications, onNotification }) => 
       {/* Main QR Generator Card */}
       <Card>
         <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 2,
+            }}
+          >
+            <Typography
+              variant="h6"
+              sx={{ display: "flex", alignItems: "center", gap: 1 }}
+            >
               <QrCode />
               Real-Time QR Code Generator
             </Typography>
-            <Box sx={{ display: 'flex', gap: 1 }}>
+            <Box sx={{ display: "flex", gap: 1 }}>
               <Tooltip title="View History">
                 <IconButton onClick={() => setHistoryDialog(true)}>
                   <History />
@@ -269,26 +291,29 @@ const AdminQRGenerator = ({ backendUrl, showNotifications, onNotification }) => 
           <Grid container spacing={3}>
             {/* QR Code Display */}
             <Grid item xs={12} md={6}>
-              <Box sx={{ textAlign: 'center' }}>
+              <Box sx={{ textAlign: "center" }}>
                 {currentQRData ? (
                   <Box>
-                    <Box sx={{ 
-                      p: 2, 
-                      bgcolor: 'white', 
-                      borderRadius: 2, 
-                      display: 'inline-block',
-                      boxShadow: 2,
-                      border: (theme) => `3px solid ${theme.palette[getStatusColor(timeRemaining)]?.main || theme.palette.primary.main}`
-                    }}>
+                    <Box
+                      sx={{
+                        p: 2,
+                        bgcolor: "white",
+                        borderRadius: 2,
+                        display: "inline-block",
+                        boxShadow: 2,
+                        border: (theme) =>
+                          `3px solid ${theme.palette[getStatusColor(timeRemaining)]?.main || theme.palette.primary.main}`,
+                      }}
+                    >
                       <QRCode
                         id="admin-qr-code"
-                        value={`${backendUrl}/login?session=${currentQRData.id}`}
+                        value={`${frontUrl}/login?session=${currentQRData.id}`}
                         size={200}
                         level="M"
                         includeMargin={true}
                       />
                     </Box>
-                    
+
                     {showTimer && (
                       <Box sx={{ mt: 2 }}>
                         <Chip
@@ -296,28 +321,36 @@ const AdminQRGenerator = ({ backendUrl, showNotifications, onNotification }) => 
                           label={`Expires in ${formatTimeRemaining(timeRemaining)}`}
                           color={getStatusColor(timeRemaining)}
                           size="large"
-                          sx={{ fontSize: '1.1rem', px: 2 }}
+                          sx={{ fontSize: "1.1rem", px: 2 }}
                         />
                       </Box>
                     )}
-                    
-                    <Typography variant="caption" display="block" sx={{ mt: 1, color: 'text.secondary' }}>
+
+                    <Typography
+                      variant="caption"
+                      display="block"
+                      sx={{ mt: 1, color: "text.secondary" }}
+                    >
                       QR ID: {currentQRData.id}
                     </Typography>
                   </Box>
                 ) : (
-                  <Box sx={{ 
-                    p: 4, 
-                    border: '2px dashed', 
-                    borderColor: 'divider', 
-                    borderRadius: 2,
-                    minHeight: 250,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <QrCode sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                  <Box
+                    sx={{
+                      p: 4,
+                      border: "2px dashed",
+                      borderColor: "divider",
+                      borderRadius: 2,
+                      minHeight: 250,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <QrCode
+                      sx={{ fontSize: 64, color: "text.secondary", mb: 2 }}
+                    />
                     <Typography variant="h6" color="text.secondary">
                       No QR Code Generated
                     </Typography>
@@ -331,26 +364,34 @@ const AdminQRGenerator = ({ backendUrl, showNotifications, onNotification }) => 
 
             {/* Controls and Status */}
             <Grid item xs={12} md={6}>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 {/* Status Alert */}
                 {isActive ? (
-                  <Alert 
-                    severity="success" 
+                  <Alert
+                    severity="success"
                     icon={<CheckCircle />}
                     action={
-                      <Button color="inherit" size="small" onClick={stopQRGeneration}>
+                      <Button
+                        color="inherit"
+                        size="small"
+                        onClick={stopQRGeneration}
+                      >
                         Stop
                       </Button>
                     }
                   >
-                    <Typography variant="subtitle2">QR Generation Active</Typography>
+                    <Typography variant="subtitle2">
+                      QR Generation Active
+                    </Typography>
                     <Typography variant="body2">
                       Code rotates every 5 minutes automatically
                     </Typography>
                   </Alert>
                 ) : (
                   <Alert severity="info">
-                    <Typography variant="subtitle2">QR Generation Stopped</Typography>
+                    <Typography variant="subtitle2">
+                      QR Generation Stopped
+                    </Typography>
                     <Typography variant="body2">
                       Start generation to create attendance QR codes
                     </Typography>
@@ -359,12 +400,30 @@ const AdminQRGenerator = ({ backendUrl, showNotifications, onNotification }) => 
 
                 {/* User Identity Info */}
                 {isAuthenticated && (
-                  <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
-                    <Typography variant="subtitle2" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box
+                    sx={{
+                      p: 2,
+                      bgcolor: "background.paper",
+                      borderRadius: 1,
+                      border: "1px solid",
+                      borderColor: "divider",
+                    }}
+                  >
+                    <Typography
+                      variant="subtitle2"
+                      gutterBottom
+                      sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                    >
                       <Person color="primary" />
                       User Identity in QR Codes
                     </Typography>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 0.5,
+                      }}
+                    >
                       <Typography variant="body2">
                         <strong>Username:</strong> {user?.username}
                       </Typography>
@@ -381,12 +440,14 @@ const AdminQRGenerator = ({ backendUrl, showNotifications, onNotification }) => 
                           </Typography>
                         </>
                       )}
-                      <Chip 
-                        size="small" 
+                      <Chip
+                        size="small"
                         icon={<Badge />}
-                        label={student ? 'Student Record Found' : 'No Student Record'}
-                        color={student ? 'success' : 'warning'}
-                        sx={{ mt: 1, alignSelf: 'flex-start' }}
+                        label={
+                          student ? "Student Record Found" : "No Student Record"
+                        }
+                        color={student ? "success" : "warning"}
+                        sx={{ mt: 1, alignSelf: "flex-start" }}
                       />
                     </Box>
                   </Box>
@@ -394,8 +455,12 @@ const AdminQRGenerator = ({ backendUrl, showNotifications, onNotification }) => 
 
                 {/* Settings */}
                 <Box>
-                  <Typography variant="subtitle2" gutterBottom>Settings</Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Settings
+                  </Typography>
+                  <Box
+                    sx={{ display: "flex", flexDirection: "column", gap: 1 }}
+                  >
                     <FormControlLabel
                       control={
                         <Switch
@@ -419,16 +484,18 @@ const AdminQRGenerator = ({ backendUrl, showNotifications, onNotification }) => 
                 </Box>
 
                 {/* Action Buttons */}
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                   {!isActive ? (
                     <Button
                       variant="contained"
-                      startIcon={loading ? <CircularProgress size={20} /> : <QrCode />}
+                      startIcon={
+                        loading ? <CircularProgress size={20} /> : <QrCode />
+                      }
                       onClick={startQRGeneration}
                       disabled={loading}
                       fullWidth
                     >
-                      {loading ? 'Generating...' : 'Start Generation'}
+                      {loading ? "Generating..." : "Start Generation"}
                     </Button>
                   ) : (
                     <>
@@ -453,7 +520,7 @@ const AdminQRGenerator = ({ backendUrl, showNotifications, onNotification }) => 
                 </Box>
 
                 {currentQRData && (
-                  <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Box sx={{ display: "flex", gap: 1 }}>
                     <Button
                       variant="outlined"
                       startIcon={<Download />}
@@ -465,7 +532,11 @@ const AdminQRGenerator = ({ backendUrl, showNotifications, onNotification }) => 
                     <Button
                       variant="outlined"
                       startIcon={<Share />}
-                      onClick={() => navigator.clipboard.writeText(JSON.stringify(currentQRData))}
+                      onClick={() =>
+                        navigator.clipboard.writeText(
+                          JSON.stringify(currentQRData)
+                        )
+                      }
                       sx={{ flex: 1 }}
                     >
                       Copy Data
@@ -475,8 +546,21 @@ const AdminQRGenerator = ({ backendUrl, showNotifications, onNotification }) => 
 
                 {/* Next QR Preview */}
                 {nextQRData && isActive && (
-                  <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
-                    <Typography variant="subtitle2" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box
+                    sx={{
+                      mt: 2,
+                      p: 2,
+                      bgcolor: "background.paper",
+                      borderRadius: 1,
+                      border: "1px solid",
+                      borderColor: "divider",
+                    }}
+                  >
+                    <Typography
+                      variant="subtitle2"
+                      gutterBottom
+                      sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                    >
                       <Visibility />
                       Next QR Code Preview
                     </Typography>
@@ -495,11 +579,19 @@ const AdminQRGenerator = ({ backendUrl, showNotifications, onNotification }) => 
       </Card>
 
       {/* History Dialog */}
-      <Dialog open={historyDialog} onClose={() => setHistoryDialog(false)} maxWidth="md" fullWidth>
+      <Dialog
+        open={historyDialog}
+        onClose={() => setHistoryDialog(false)}
+        maxWidth="md"
+        fullWidth
+      >
         <DialogTitle>QR Code History</DialogTitle>
         <DialogContent>
           {qrHistory.length === 0 ? (
-            <Typography color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+            <Typography
+              color="text.secondary"
+              sx={{ textAlign: "center", py: 2 }}
+            >
               No QR codes generated yet
             </Typography>
           ) : (
@@ -508,9 +600,9 @@ const AdminQRGenerator = ({ backendUrl, showNotifications, onNotification }) => 
                 <React.Fragment key={qr.id}>
                   <ListItem>
                     <ListItemIcon>
-                      {qr.status === 'active' ? (
+                      {qr.status === "active" ? (
                         <CheckCircle color="success" />
-                      ) : qr.status === 'expired' ? (
+                      ) : qr.status === "expired" ? (
                         <Timer color="warning" />
                       ) : (
                         <Warning color="error" />
@@ -521,17 +613,27 @@ const AdminQRGenerator = ({ backendUrl, showNotifications, onNotification }) => 
                       secondary={
                         <>
                           <Typography variant="body2" component="span">
-                            Generated: {format(qr.generatedAt, 'MMM dd, yyyy HH:mm:ss')}
+                            Generated:{" "}
+                            {format(qr.generatedAt, "MMM dd, yyyy HH:mm:ss")}
                           </Typography>
                           <br />
-                          <Typography variant="body2" component="span" color="text.secondary">
+                          <Typography
+                            variant="body2"
+                            component="span"
+                            color="text.secondary"
+                          >
                             Status: {qr.status.toUpperCase()}
                           </Typography>
-                          {qr.status === 'active' && (
+                          {qr.status === "active" && (
                             <>
                               <br />
-                              <Typography variant="body2" component="span" color="success.main">
-                                Expires: {format(new Date(qr.expiresAt), 'HH:mm:ss')}
+                              <Typography
+                                variant="body2"
+                                component="span"
+                                color="success.main"
+                              >
+                                Expires:{" "}
+                                {format(new Date(qr.expiresAt), "HH:mm:ss")}
                               </Typography>
                             </>
                           )}
@@ -551,14 +653,22 @@ const AdminQRGenerator = ({ backendUrl, showNotifications, onNotification }) => 
       </Dialog>
 
       {/* Information Dialog */}
-      <Dialog open={infoDialog} onClose={() => setInfoDialog(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={infoDialog}
+        onClose={() => setInfoDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>QR Code Information</DialogTitle>
         <DialogContent>
           <Typography paragraph>
-            This QR code system generates time-based attendance codes that automatically rotate every 5 minutes for security.
+            This QR code system generates time-based attendance codes that
+            automatically rotate every 5 minutes for security.
           </Typography>
-          
-          <Typography variant="subtitle2" gutterBottom>Features:</Typography>
+
+          <Typography variant="subtitle2" gutterBottom>
+            Features:
+          </Typography>
           <List dense>
             <ListItem>
               <ListItemText primary="• Auto-rotation every 5 minutes" />
@@ -577,9 +687,13 @@ const AdminQRGenerator = ({ backendUrl, showNotifications, onNotification }) => 
             </ListItem>
           </List>
 
-          <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Security:</Typography>
+          <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
+            Security:
+          </Typography>
           <Typography variant="body2" color="text.secondary">
-            Each QR code contains a checksum and expiration timestamp. The system works with your existing geolocation and geofencing features to ensure secure attendance tracking.
+            Each QR code contains a checksum and expiration timestamp. The
+            system works with your existing geolocation and geofencing features
+            to ensure secure attendance tracking.
           </Typography>
         </DialogContent>
         <DialogActions>
