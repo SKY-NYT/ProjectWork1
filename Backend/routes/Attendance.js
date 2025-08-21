@@ -19,7 +19,6 @@ attendanceTracker.init();
 const meetingDiagnostics = new MeetingDiagnostics();
 
 // GET /api/attendance/logs?dateFrom=YYYY-MM-DD&dateTo=YYYY-MM-DD
-const Attendance = require('../models/Attendance');
 router.get('/logs', async (req, res) => {
   const { dateFrom, dateTo } = req.query;
   try {
