@@ -11,10 +11,7 @@ import { QrCode, Home, AdminPanelSettings } from "@mui/icons-material";
 import AdminQRGenerator from "../Components/QRCode/AdminQRGenerator";
 
 const QRCodeGenerator = () => {
-  console.log("frontendUrl:", import.meta.env.REACT_APP_FRONTEND_URL);
-  const frontendUrl =
-    import.meta.env.REACT_APP_FRONTEND_URL ||
-    "https://project-work1-brown.vercel.app";
+  const frontendUrl = "https://project-work1-brown.vercel.app";
 
   const showNotificationMessage = (message, severity = "info") => {
     // You can integrate with your notification system here

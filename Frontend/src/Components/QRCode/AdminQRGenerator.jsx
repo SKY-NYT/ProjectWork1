@@ -43,7 +43,11 @@ import QRCode from "react-qr-code";
 import { format, addMinutes, differenceInSeconds } from "date-fns";
 import { useAuth } from "../../context/AuthContext";
 
-const AdminQRGenerator = ({ frontUrl, showNotifications, onNotification }) => {
+const AdminQRGenerator = ({
+  frontendUrl,
+  showNotifications,
+  onNotification,
+}) => {
   // Get auth context for user identity
   const { getUserIdentity, isAuthenticated, user, student, displayName } =
     useAuth();
@@ -307,7 +311,7 @@ const AdminQRGenerator = ({ frontUrl, showNotifications, onNotification }) => {
                     >
                       <QRCode
                         id="admin-qr-code"
-                        value={`${frontUrl}/signin?session=${currentQRData.id}`}
+                        value={`${frontendUrl}/signin?session=${currentQRData.id}`}
                         size={200}
                         level="M"
                         includeMargin={true}
